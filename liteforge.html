@@ -789,7 +789,7 @@ async function sendGreet(type) {
 async function fetchAllLogs() {
   const blockHex  = await rpcCall('eth_blockNumber', []);
   const latest    = parseInt(blockHex, 16);
-  const fromBlock = Math.max(0, latest - 100000);
+  const fromBlock = 15571512; // SC deploy block — scan full history
 
   const [gmLogs, gnLogs] = await Promise.all([
     rpcCall('eth_getLogs', [{
@@ -883,16 +883,21 @@ async function loadMsgWall() {
     }
 
     wallEl.innerHTML = '';
-    for (const log of withMsg) {
+    // newest first, max 8 with a message
+    for (const log of withMsg.slice(0, 8)) {
       const sender = '0x' + log.topics[1].slice(26);
       const { streak, msgText } = decodeEventData(log.data);
+      const txHash = log.transactionHash;
       const item = document.createElement('div');
       item.className = 'msg-wall-item';
       item.innerHTML = `
         <div class="msg-wall-item-top">
           <span class="msg-wall-badge ${log._type.toLowerCase()}">${log._type}</span>
-          <span class="msg-wall-addr"><a href="${EXPLORER}/address/${sender}" target="_blank">${shortAddr(sender)}</a></span>
+          <span class="msg-wall-addr">${shortAddr(sender)}</span>
           <span class="msg-wall-streak">🔥${streak}</span>
+          <a href="${EXPLORER}/tx/${txHash}" target="_blank"
+             style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-decoration:none;margin-left:auto;"
+             title="${txHash}">↗ tx</a>
         </div>
         <div class="msg-wall-text">${escHtml(msgText)}</div>`;
       wallEl.appendChild(item);

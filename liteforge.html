@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiteForge Greets — GM/GN on zkLTC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0:         #080e18;
+      --bg1:         #0d1520;
+      --bg2:         #111d2e;
+      --bg3:         #162236;
+      --cyan:        #5bc8d4;
+      --cyan-dim:    #3a8a94;
+      --cyan-glow:   rgba(91,200,212,0.15);
+      --cyan-border: rgba(91,200,212,0.22);
+      --blue:        #4a9ebb;
+      --gold:        #f0c060;
+      --text:        #ddeef2;
+      --text-dim:    #7aacb8;
+      --text-muted:  #3d6878;
+      --card-bg:     rgba(13,21,32,0.85);
+      --success:     #4cd98a;
+      --error:       #f06060;
+      --font-mono:   'Share Tech Mono', monospace;
+      --font-main:   'Exo 2', sans-serif;
+      --radius:      10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg0);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 15% 20%, rgba(74,158,187,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 85% 75%, rgba(91,200,212,0.08) 0%, transparent 55%);
+      pointer-events: none; z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(91,200,212,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(91,200,212,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Layout ── */
+    /* Hero sits outside the grid, full-width */
+    .hero-wrap {
+      position: relative; z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 12px;
+      border: none !important;
+      background: none !important;
+    }
+
+    /* Two-column grid starts at stats level */
+    .page-layout {
+      position: relative; z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 12px 80px;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      grid-template-areas: "main sidebar";
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .main-col    { grid-area: main; }
+    .sidebar-col { grid-area: sidebar; }
+
+    @media (max-width: 860px) {
+      .page-layout {
+        grid-template-columns: 1fr;
+        grid-template-areas: "main" "sidebar";
+      }
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 28px;
+      background: rgba(8,14,24,0.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--cyan-border);
+    }
+
+    .nav-logo {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--cyan); letter-spacing: 0.05em; text-decoration: none;
+    }
+
+    /* ── Nav right: uniform pill buttons ── */
+    .nav-right {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .nav-pill {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-dim); background: var(--bg2);
+      border: 1px solid var(--cyan-border); border-radius: 6px;
+      padding: 6px 12px; letter-spacing: 0.07em;
+      white-space: nowrap;
+    }
+
+    /* Connect button — same pill size, gradient fill when disconnected */
+    .btn-connect {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.07em;
+      border-radius: 6px; padding: 6px 12px;
+      cursor: pointer; transition: opacity .2s, box-shadow .2s;
+      white-space: nowrap;
+      /* disconnected state */
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 100%);
+      color: var(--bg0); font-weight: 700; border: none;
+      box-shadow: 0 0 16px rgba(91,200,212,0.25);
+    }
+    .btn-connect:hover { opacity:.85; box-shadow:0 2px 20px rgba(91,200,212,.4); }
+
+    /* connected state — same size as nav-pill */
+    .btn-connect.connected {
+      background: var(--bg2); color: var(--cyan);
+      border: 1px solid var(--cyan-border); box-shadow: none; font-weight: 400;
+    }
+
+    /* disconnect button — hidden until hover on connected state */
+    .nav-wallet-wrap { position: relative; display: flex; align-items: center; }
+    .btn-disconnect {
+      display: none;
+      font-family: var(--font-mono); font-size: 10px;
+      background: rgba(240,96,96,0.1); color: var(--error);
+      border: 1px solid rgba(240,96,96,0.3); border-radius: 6px;
+      padding: 6px 10px; cursor: pointer; margin-left: 4px;
+      transition: background .2s;
+    }
+    .btn-disconnect:hover { background: rgba(240,96,96,0.2); }
+    .nav-wallet-wrap.connected .btn-disconnect { display: inline-flex; align-items: center; }
+
+    /* ── Hero ── */
+    .hero { text-align: center; padding: 24px 0 20px; }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.2em;
+      color: var(--cyan); text-transform: uppercase; margin-bottom: 10px; opacity: .85;
+    }
+
+    .hero-title {
+      font-size: clamp(28px, 4vw, 46px); font-weight: 800;
+      line-height: 1.06; letter-spacing: -0.02em; margin-bottom: 10px;
+      background: linear-gradient(135deg, #e8f4f8 0%, var(--cyan) 55%, var(--blue) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 16px; color: var(--text-dim); max-width: 620px;
+      margin: 0 auto 10px; line-height: 1.6; font-weight: 300;
+    }
+    .hero-sub strong { color: var(--cyan); font-weight: 600; }
+
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--cyan-border);
+      border-radius: var(--radius); padding: 16px 12px; text-align: center;
+      backdrop-filter: blur(8px); transition: border-color .2s;
+    }
+    .stat-card:hover { border-color: var(--cyan-dim); }
+    .stat-val {
+      font-family: var(--font-mono); font-size: 24px;
+      color: var(--cyan); line-height: 1; margin-bottom: 5px;
+    }
+    .stat-label {
+      font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-muted); font-weight: 600;
+    }
+
+    /* ── Greet panel ── */
+    .greet-panel {
+      background: var(--card-bg); border: 1px solid var(--cyan-border);
+      border-radius: 14px; padding: 24px 20px; margin-bottom: 18px;
+      backdrop-filter: blur(10px); position: relative; overflow: hidden;
+    }
+    .greet-panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity: .55;
+    }
+    .greet-panel-title {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px;
+    }
+
+    .greet-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+
+    .btn-gm, .btn-gn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 14px; border-radius: var(--radius);
+      font-family: var(--font-main); font-weight: 700; font-size: 15px;
+      cursor: pointer; border: 1.5px solid; transition: all .2s;
+    }
+    .btn-gm { background: rgba(91,200,212,0.07); border-color: var(--cyan-dim); color: var(--cyan); }
+    .btn-gm:hover:not(:disabled) {
+      background: rgba(91,200,212,0.15); border-color: var(--cyan);
+      box-shadow: 0 0 20px rgba(91,200,212,0.2); transform: translateY(-1px);
+    }
+    .btn-gn { background: rgba(74,158,187,0.07); border-color: rgba(74,158,187,0.38); color: var(--blue); }
+    .btn-gn:hover:not(:disabled) {
+      background: rgba(74,158,187,0.15); border-color: var(--blue);
+      box-shadow: 0 0 20px rgba(74,158,187,0.2); transform: translateY(-1px);
+    }
+    .btn-gm:disabled, .btn-gn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+    .btn-done {
+      background: rgba(76,217,138,0.07) !important;
+      border-color: rgba(76,217,138,0.32) !important;
+      color: var(--success) !important;
+    }
+
+    /* ── Message toggle ── */
+    .msg-toggle {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-dim); cursor: pointer;
+      background: none; border: none; font-family: var(--font-main);
+      padding: 4px 0; transition: color .2s;
+    }
+    .msg-toggle:hover { color: var(--cyan); }
+    .msg-toggle svg { transition: transform .22s; }
+    .msg-toggle.open svg { transform: rotate(90deg); }
+    .msg-wrap { overflow: hidden; max-height: 0; transition: max-height .3s ease, margin .3s ease; }
+    .msg-wrap.open { max-height: 100px; margin-top: 12px; }
+    .msg-input {
+      width: 100%; background: var(--bg0); border: 1px solid var(--cyan-border);
+      border-radius: var(--radius); color: var(--text); font-family: var(--font-main);
+      font-size: 13px; padding: 10px 14px; resize: none; outline: none;
+      transition: border-color .2s;
+    }
+    .msg-input:focus { border-color: var(--cyan-dim); }
+    .msg-input::placeholder { color: var(--text-muted); }
+
+    /* ── Fee hint ── */
+    .fee-hint {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 14px;
+    }
+    .fee-hint span { color: var(--cyan); }
+
+    /* ── Log ── */
+    #log-area {
+      min-height: 34px; margin-top: 14px; font-family: var(--font-mono); font-size: 12px;
+      padding: 10px 14px; border-radius: var(--radius); border: 1px solid transparent;
+      display: none; word-break: break-all; line-height: 1.5;
+    }
+    #log-area.show   { display: block; }
+    #log-area.pending { border-color: var(--cyan-border); color: var(--cyan);    background: var(--cyan-glow); }
+    #log-area.success { border-color: rgba(76,217,138,.28); color: var(--success); background: rgba(76,217,138,.06); }
+    #log-area.error   { border-color: rgba(240,96,96,.28);  color: var(--error);   background: rgba(240,96,96,.06); }
+
+    /* ── Feed (main col) ── */
+    .feed-section { margin-top: 18px; position: relative; overflow: hidden; }
+    .feed-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .feed-title { font-family:var(--font-mono); font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); }
+    .feed-refresh {
+      background:none; border:1px solid var(--cyan-border); color:var(--text-dim);
+      font-size:11px; font-family:var(--font-mono); padding:4px 10px; border-radius:6px;
+      cursor:pointer; transition:all .2s;
+    }
+    .feed-refresh:hover { border-color:var(--cyan-dim); color:var(--cyan); }
+    .feed-list { display:flex; flex-direction:column; gap:7px; }
+    .feed-item {
+      display:flex; align-items:flex-start; gap:10px;
+      background:var(--card-bg); border:1px solid var(--cyan-border);
+      border-radius:var(--radius); padding:11px 13px;
+      backdrop-filter:blur(6px); animation:fadeIn .3s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+    .feed-badge {
+      flex-shrink:0; font-family:var(--font-mono); font-size:11px; font-weight:700;
+      padding:3px 8px; border-radius:5px; letter-spacing:.06em; margin-top:1px;
+    }
+    .feed-badge.gm { background:rgba(91,200,212,.14); color:var(--cyan); border:1px solid var(--cyan-border); }
+    .feed-badge.gn { background:rgba(74,158,187,.11); color:var(--blue); border:1px solid rgba(74,158,187,.3); }
+    .feed-body { flex:1; min-width:0; }
+    .feed-addr { font-family:var(--font-mono); font-size:12px; color:var(--text); margin-bottom:3px; }
+    .feed-addr a { color:inherit; text-decoration:none; }
+    .feed-addr a:hover { color:var(--cyan); }
+    .feed-meta { font-size:11px; color:var(--text-muted); display:flex; flex-wrap:wrap; gap:8px; }
+    .feed-meta .streak { color:var(--gold); }
+    .feed-meta .msg    { color:var(--text-dim); font-style:italic; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .feed-empty {
+      text-align:center; font-family:var(--font-mono); font-size:12px;
+      color:var(--text-muted); padding:20px;
+      border:1px dashed var(--cyan-border); border-radius:var(--radius);
+    }
+
+    /* ── Sidebar — Message Wall ── */
+    .sidebar-panel {
+      background: var(--card-bg); border: 1px solid var(--cyan-border);
+      border-radius: 14px; padding: 18px 16px;
+      backdrop-filter: blur(10px); overflow: hidden; position: relative;
+      margin-top: 94px; /* skip stats bar to align with greet panel */
+      display: flex; flex-direction: column;
+      height: calc(100% - 94px);
+    }
+    .sidebar-panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      border-radius: 14px 14px 0 0;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: .5;
+    }
+    .sidebar-panel { position: sticky; top: 20px; overflow: hidden; }
+
+    .sidebar-title {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .msg-wall { display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; }
+    .msg-wall::-webkit-scrollbar { width: 4px; }
+    .msg-wall::-webkit-scrollbar-track { background: transparent; }
+    .msg-wall::-webkit-scrollbar-thumb { background: var(--cyan-border); border-radius: 2px; }
+
+    .msg-wall-item {
+      background: rgba(8,14,24,0.6); border: 1px solid rgba(91,200,212,0.12);
+      border-radius: 8px; padding: 10px 12px; animation: fadeIn .3s ease;
+    }
+    .msg-wall-item-top {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+    }
+    .msg-wall-badge {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px; letter-spacing: .05em;
+    }
+    .msg-wall-badge.gm { background:rgba(91,200,212,.12); color:var(--cyan); }
+    .msg-wall-badge.gn { background:rgba(74,158,187,.10); color:var(--blue); }
+    .msg-wall-addr {
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+      flex: 1;
+    }
+    .msg-wall-addr a { color: inherit; text-decoration: none; }
+    .msg-wall-addr a:hover { color: var(--cyan); }
+    .msg-wall-streak { font-family: var(--font-mono); font-size: 10px; color: var(--gold); }
+    .msg-wall-text {
+      font-size: 12px; color: var(--text); line-height: 1.5;
+      word-break: break-word;
+    }
+    .msg-wall-empty {
+      text-align: center; font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-muted); padding: 20px 10px;
+    }
+
+    /* ── SC Info ── */
+    .sc-info {
+      margin-top: 20px; background: var(--card-bg); border: 1px solid var(--cyan-border);
+      border-radius: var(--radius); padding: 14px 16px;
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    }
+    .sc-info-label { font-family:var(--font-mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; }
+    .sc-info-addr  { font-family:var(--font-mono); font-size:12px; color:var(--cyan); }
+    .sc-info-addr a { color:inherit; text-decoration:none; }
+    .sc-info-addr a:hover { text-decoration:underline; }
+
+    /* ── Footer ── */
+    footer {
+      position:relative; z-index:1; text-align:center;
+      padding:24px 20px; border-top:1px solid var(--cyan-border);
+      font-size:12px; color:var(--text-muted); font-family:var(--font-mono);
+    }
+    footer a { color:var(--text-dim); text-decoration:none; }
+    footer a:hover { color:var(--cyan); }
+
+    @media (max-width:520px) {
+      .stats-bar { grid-template-columns:repeat(2,1fr); }
+      .greet-buttons { grid-template-columns:1fr; }
+      nav { padding:12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <a class="nav-logo" href="https://chaingreets.xyz" target="_blank">LiteForge Greets</a>
+  <div class="nav-right">
+    <span class="nav-pill">LitVM TESTNET</span>
+    <div class="nav-wallet-wrap" id="nav-wallet-wrap">
+      <button class="btn-connect" id="connect-btn" onclick="handleConnect()">Connect Wallet</button>
+      <button class="btn-disconnect" id="disconnect-btn" onclick="handleDisconnect()" title="Disconnect">✕</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero (full-width, outside grid) ── -->
+<div class="hero-wrap">
+  <div class="hero">
+    <div class="hero-eyebrow">⚡ LiteForge Hackathon — Built on zkLTC</div>
+    <h1 class="hero-title">GM / GN on Litecoin EVM</h1>
+    <p class="hero-sub">
+      Daily onchain greetings with <strong>streak tracking</strong>,
+      optional messages and zkLTC tips, powered by <strong>LitVM</strong>,
+      Litecoin's first EVM rollup.
+    </p>
+  </div>
+</div>
+
+<!-- ── Page layout ── -->
+<div class="page-layout">
+
+  <!-- ── Main column ── -->
+  <div class="main-col">
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-gm-streak">—</div>
+        <div class="stat-label">☀️ GM Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-gn-streak">—</div>
+        <div class="stat-label">🌙 GN Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-gm-total">—</div>
+        <div class="stat-label">Total GMs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-gn-total">—</div>
+        <div class="stat-label">Total GNs</div>
+      </div>
+    </div>
+
+    <!-- Greet panel -->
+    <div class="greet-panel">
+      <div class="greet-panel-title">// Send your daily greeting</div>
+      <div class="greet-buttons">
+        <button class="btn-gm" id="btn-gm" onclick="sendGreet('gm')" disabled>
+          ☀️ &nbsp;Good Morning
+        </button>
+        <button class="btn-gn" id="btn-gn" onclick="sendGreet('gn')" disabled>
+          🌙 &nbsp;Good Night
+        </button>
+      </div>
+
+      <button class="msg-toggle" id="msg-toggle" onclick="toggleMsg()">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Add a message (optional)
+      </button>
+      <div class="msg-wrap" id="msg-wrap">
+        <textarea class="msg-input" id="msg-input" rows="2"
+          placeholder="Say something onchain... (max 280 chars)" maxlength="280"></textarea>
+      </div>
+
+      <div class="fee-hint">
+        ⛽ Fee: <span>0.000123 zkLTC</span> per action &nbsp;·&nbsp; Enforced onchain
+      </div>
+      <div id="log-area"></div>
+    </div>
+
+    <!-- Feed — wallet only -->
+    <div class="feed-section greet-panel">
+      <div class="feed-header">
+        <div class="feed-title">// My Greetings</div>
+        <button class="feed-refresh" onclick="loadFeed()">↻ Refresh</button>
+      </div>
+      <div id="feed-wallet-hint" style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-bottom:8px;display:none;">
+        Wallet: <span id="feed-wallet-addr" style="color:var(--cyan);"></span>
+      </div>
+      <div id="feed-no-wallet" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);padding:16px 0;">
+        Connect your wallet to see your greetings.
+      </div>
+      <div class="feed-list" id="feed-list" style="display:none;">
+        <div class="feed-empty">Loading...</div>
+      </div>
+    </div>
+
+    <!-- SC Info -->
+    <div class="sc-info">
+      <div>
+        <div class="sc-info-label">Smart Contract — LitVM Testnet</div>
+        <div class="sc-info-addr">
+          <a href="https://liteforge.explorer.caldera.xyz/address/0xc71677793594e160b6E91540a60A98D7FD0acb7A"
+             target="_blank">0xc71677793594e160b6E91540a60A98D7FD0acb7A</a>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="sc-info-label">Solidity 0.8.34</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">GreetLiteForge.sol</div>
+      </div>
+    </div>
+
+  </div><!-- /main-col -->
+
+  <!-- ── Sidebar — Message Wall ── -->
+  <div class="sidebar-col">
+    <div class="sidebar-panel">
+      <div class="sidebar-title">
+        <span>// Messages onchain</span>
+        <button class="feed-refresh" onclick="loadMsgWall()" style="margin:0;">↻</button>
+      </div>
+      <div class="msg-wall" id="msg-wall">
+        <div class="msg-wall-empty">Loading messages...</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-layout -->
+
+<!-- ── Footer ── -->
+<footer>
+  Built by <a href="https://chaingreets.xyz" target="_blank">ChainGreets</a>
+  &nbsp;·&nbsp;
+  <a href="https://x.com/chaingreets" target="_blank">@chaingreets</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/freeouyo/liteforge-greets" target="_blank">GitHub</a>
+  &nbsp;·&nbsp;
+  <a href="https://hackathon.litvm.com" target="_blank">LiteForge Hackathon</a>
+  &nbsp;·&nbsp; LitVM Testnet · Chain 4441
+</footer>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────
+const RPC      = 'https://liteforge.rpc.caldera.xyz/http';
+const SC_ADDR  = '0xc71677793594e160b6E91540a60A98D7FD0acb7A';
+const CHAIN_ID = '0x1159';
+const EXPLORER = 'https://liteforge.explorer.caldera.xyz';
+const FEE_HEX  = '0x' + BigInt('123000000000000').toString(16);
+
+// Selectors (keccak256 verified)
+const SEL_GM        = '0xd8686ecb';
+const SEL_GN        = '0x37b548bf';
+const SEL_GET_STATS = '0xc23f85d6';
+const SEL_CAN_GM    = '0x9a2945cf';
+const SEL_CAN_GN    = '0xbf19c6e7';
+
+// Event topics (keccak256 verified)
+const TOPIC_GM = '0x5261105c3a23190243f6958ebd739879dccd719f50ebe302729f60e6cd05cfc9';
+const TOPIC_GN = '0x71b35bfeea6ea769fd89a28dad7463393c5d4fad2a13cdf4e281c03ce03b2198';
+
+// ── State ───────────────────────────────────────────────────────
+let provider = null;
+let account  = null;
+let canGmNow = false;
+let canGnNow = false;
+let msgOpen  = false;
+
+// ── Utilities ───────────────────────────────────────────────────
+function shortAddr(a) { return a.slice(0,6) + '...' + a.slice(-4); }
+function escHtml(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function hexToDec(h)  { try { return BigInt(h).toString(); } catch(e) { return '0'; } }
+function addrPad(a)   { return '000000000000000000000000' + a.slice(2).toLowerCase(); }
+
+async function rpcCall(method, params) {
+  const r = await fetch(RPC, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({jsonrpc:'2.0',id:1,method,params})
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return j.result;
+}
+
+async function ethCall(selector, addr) {
+  return rpcCall('eth_call', [{ to:SC_ADDR, data: selector + addrPad(addr) }, 'latest']);
+}
+
+function encodeStringCall(selector, str) {
+  const strBytes = new TextEncoder().encode(str);
+  const lenHex   = strBytes.length.toString(16).padStart(64,'0');
+  const padded   = new Uint8Array(Math.ceil(strBytes.length/32)*32);
+  padded.set(strBytes);
+  const strHex   = Array.from(padded).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const offset   = '0000000000000000000000000000000000000000000000000000000000000020';
+  return selector + offset + lenHex + strHex;
+}
+
+// Decode non-indexed event data: (string message, uint256 streak, uint256 tip, uint256 dayIndex)
+function decodeEventData(data) {
+  try {
+    const d          = data.slice(2);
+    const strByteOff = parseInt(d.slice(0,64), 16);
+    const streak     = hexToDec('0x' + d.slice(64,128));
+    const strHexOff  = strByteOff * 2;
+    const msgLen     = parseInt(d.slice(strHexOff, strHexOff+64), 16);
+    let msgText = '';
+    if (msgLen > 0 && msgLen <= 280) {
+      const msgHex = d.slice(strHexOff+64, strHexOff+64+msgLen*2);
+      msgText = new TextDecoder().decode(
+        new Uint8Array(msgHex.match(/.{1,2}/g).map(b=>parseInt(b,16)))
+      );
+    }
+    return { streak, msgText };
+  } catch(e) { return { streak: '?', msgText: '' }; }
+}
+
+// ── Stats ────────────────────────────────────────────────────────
+async function loadStats(addr) {
+  try {
+    const raw = await ethCall(SEL_GET_STATS, addr);
+    if (!raw || raw === '0x') return;
+    const d = raw.slice(2);
+    document.getElementById('stat-gm-total').textContent  = hexToDec('0x'+d.slice(0,64));
+    document.getElementById('stat-gn-total').textContent  = hexToDec('0x'+d.slice(64,128));
+    document.getElementById('stat-gm-streak').textContent = hexToDec('0x'+d.slice(128,192));
+    document.getElementById('stat-gn-streak').textContent = hexToDec('0x'+d.slice(192,256));
+  } catch(e) { console.warn('loadStats:', e); }
+}
+
+async function checkCanAct(addr) {
+  try {
+    const rGm = await ethCall(SEL_CAN_GM, addr);
+    const rGn = await ethCall(SEL_CAN_GN, addr);
+    canGmNow = (rGm !== '0x'+'0'.repeat(64));
+    canGnNow = (rGn !== '0x'+'0'.repeat(64));
+    updateButtons();
+  } catch(e) { console.warn('checkCanAct:', e); }
+}
+
+// ── UI ───────────────────────────────────────────────────────────
+function updateButtons() {
+  const bGm = document.getElementById('btn-gm');
+  const bGn = document.getElementById('btn-gn');
+  if (!account) {
+    bGm.disabled = bGn.disabled = true;
+    bGm.classList.remove('btn-done'); bGn.classList.remove('btn-done');
+    return;
+  }
+  bGm.disabled = !canGmNow; bGn.disabled = !canGnNow;
+  bGm.classList.toggle('btn-done', !canGmNow);
+  bGn.classList.toggle('btn-done', !canGnNow);
+  bGm.innerHTML = canGmNow ? '&#9728;&#65039; &nbsp;Good Morning' : '&#9989; &nbsp;GM sent today';
+  bGn.innerHTML = canGnNow ? '&#127769; &nbsp;Good Night'         : '&#9989; &nbsp;GN sent today';
+}
+
+function setLog(type, msg) {
+  const el = document.getElementById('log-area');
+  el.textContent = msg; el.className = 'show '+type;
+}
+
+function toggleMsg() {
+  msgOpen = !msgOpen;
+  document.getElementById('msg-wrap').classList.toggle('open', msgOpen);
+  document.getElementById('msg-toggle').classList.toggle('open', msgOpen);
+}
+
+// ── Wallet connect / disconnect ──────────────────────────────────
+async function handleConnect() {
+  if (account) return;
+  if (!window.ethereum) { alert('No EVM wallet detected. Please install MetaMask or Rabby.'); return; }
+
+  try {
+    const accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
+    account = accounts[0];
+
+    try {
+      await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:CHAIN_ID}] });
+    } catch(sw) {
+      if (sw.code === 4902) {
+        await window.ethereum.request({
+          method:'wallet_addEthereumChain',
+          params:[{
+            chainId: CHAIN_ID, chainName:'LitVM Testnet',
+            nativeCurrency:{name:'zkLTC',symbol:'zkLTC',decimals:18},
+            rpcUrls:[RPC], blockExplorerUrls:[EXPLORER]
+          }]
+        });
+      }
+    }
+
+    provider = window.ethereum;
+    setWalletUI(account);
+    await loadStats(account);
+    await checkCanAct(account);
+    loadFeed(); // auto-refresh My Greetings on connect
+
+    provider.on('accountsChanged', accs => {
+      if (!accs[0]) { handleDisconnect(); return; }
+      account = accs[0];
+      setWalletUI(account);
+      loadStats(account); checkCanAct(account);
+    });
+  } catch(e) {
+    if (e.code !== 4001) alert('Connection failed: ' + e.message);
+  }
+}
+
+function handleDisconnect() {
+  account = null; provider = null;
+  canGmNow = false; canGnNow = false;
+
+  const btn  = document.getElementById('connect-btn');
+  const wrap = document.getElementById('nav-wallet-wrap');
+  btn.textContent = 'Connect Wallet';
+  btn.classList.remove('connected');
+  wrap.classList.remove('connected');
+
+  // Reset stats display
+  ['stat-gm-streak','stat-gn-streak','stat-gm-total','stat-gn-total']
+    .forEach(id => document.getElementById(id).textContent = '—');
+  updateButtons();
+}
+
+function setWalletUI(addr) {
+  const btn  = document.getElementById('connect-btn');
+  const wrap = document.getElementById('nav-wallet-wrap');
+  btn.textContent = shortAddr(addr);
+  btn.classList.add('connected');
+  wrap.classList.add('connected');
+}
+
+// ── Send greeting ────────────────────────────────────────────────
+async function sendGreet(type) {
+  if (!account || !provider) return;
+  const msg   = document.getElementById('msg-input').value.trim().slice(0,280);
+  const sel   = type === 'gm' ? SEL_GM : SEL_GN;
+  const btnId = type === 'gm' ? 'btn-gm' : 'btn-gn';
+  const label = type === 'gm' ? '☀️ GM' : '🌙 GN';
+
+  document.getElementById(btnId).disabled = true;
+  setLog('pending', label + ' — signing transaction...');
+
+  try {
+    const nonce  = await rpcCall('eth_getTransactionCount', [account, 'pending']);
+    const data   = encodeStringCall(sel, msg);
+
+    const txHash = await provider.request({
+      method:'eth_sendTransaction',
+      params:[{
+        from:     account,
+        to:       SC_ADDR,
+        value:    FEE_HEX,
+        data:     data,
+        gasPrice: '0x989680',
+        nonce:    nonce
+      }]
+    });
+
+    setLog('pending', label + ' — waiting for confirmation...');
+
+    let receipt = null;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      receipt = await rpcCall('eth_getTransactionReceipt', [txHash]);
+      if (receipt) break;
+    }
+
+    if (!receipt || receipt.status !== '0x1') {
+      setLog('error', label + ' — transaction failed or unconfirmed.');
+      await checkCanAct(account); return;
+    }
+
+    const short = txHash.slice(0,10)+'...'+txHash.slice(-6);
+    setLog('success', label + ' confirmed! ' + short + ' → ' + EXPLORER + '/tx/' + txHash);
+
+    if (type === 'gm') canGmNow = false; else canGnNow = false;
+    updateButtons();
+    await loadStats(account);
+    setTimeout(() => { loadFeed(); loadMsgWall(); }, 2500);
+
+  } catch(e) {
+    if (e.code === 4001) setLog('error', 'Transaction cancelled.');
+    else setLog('error', (e.message || 'Unknown error').slice(0,140));
+    updateButtons();
+  }
+}
+
+// ── Shared log fetch (used by both feed and msg wall) ────────────
+async function fetchAllLogs() {
+  const blockHex  = await rpcCall('eth_blockNumber', []);
+  const latest    = parseInt(blockHex, 16);
+  const fromBlock = Math.max(0, latest - 100000);
+
+  const [gmLogs, gnLogs] = await Promise.all([
+    rpcCall('eth_getLogs', [{
+      fromBlock: '0x' + fromBlock.toString(16), toBlock: 'latest',
+      address: SC_ADDR, topics: [TOPIC_GM]
+    }]),
+    rpcCall('eth_getLogs', [{
+      fromBlock: '0x' + fromBlock.toString(16), toBlock: 'latest',
+      address: SC_ADDR, topics: [TOPIC_GN]
+    }])
+  ]);
+
+  return [
+    ...(gmLogs||[]).map(l => ({...l, _type:'GM'})),
+    ...(gnLogs||[]).map(l => ({...l, _type:'GN'}))
+  ].sort((a,b) => parseInt(b.blockNumber,16) - parseInt(a.blockNumber,16));
+}
+
+// ── Feed (wallet only — last 10 events for connected address) ────
+async function loadFeed() {
+  const listEl   = document.getElementById('feed-list');
+  const noWallet = document.getElementById('feed-no-wallet');
+  const hint     = document.getElementById('feed-wallet-hint');
+  const addrEl   = document.getElementById('feed-wallet-addr');
+
+  // Not connected — show placeholder
+  if (!account) {
+    listEl.style.display   = 'none';
+    noWallet.style.display = 'block';
+    hint.style.display     = 'none';
+    return;
+  }
+
+  // Connected — show wallet hint, hide placeholder
+  noWallet.style.display = 'none';
+  hint.style.display     = 'block';
+  addrEl.textContent     = shortAddr(account);
+  listEl.style.display   = 'flex';
+  listEl.innerHTML       = '<div class="feed-empty">Loading...</div>';
+
+  try {
+    const logs = await fetchAllLogs();
+    // Filter: only events from connected wallet
+    const mine = logs.filter(log =>
+      ('0x' + log.topics[1].slice(26)).toLowerCase() === account.toLowerCase()
+    );
+
+    if (!mine.length) {
+      listEl.innerHTML = '<div class="feed-empty">No greetings yet — send your first GM! ☀️</div>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    for (const log of mine.slice(0, 10)) {
+      const { streak, msgText } = decodeEventData(log.data);
+      const blockNum = parseInt(log.blockNumber, 16);
+      const item = document.createElement('div');
+      item.className = 'feed-item';
+      item.innerHTML = `
+        <div class="feed-badge ${log._type.toLowerCase()}">${log._type}</div>
+        <div class="feed-body">
+          <div class="feed-addr" style="color:var(--text-dim);">${shortAddr(account)}</div>
+          <div class="feed-meta">
+            <span class="streak">🔥 streak ${streak}</span>
+            ${msgText ? '<span class="msg">"'+escHtml(msgText)+'"</span>' : ''}
+            <span>block ${blockNum.toLocaleString()}</span>
+          </div>
+        </div>`;
+      listEl.appendChild(item);
+    }
+  } catch(e) {
+    listEl.innerHTML = '<div class="feed-empty">Could not load: ' + escHtml(e.message||'error') + '</div>';
+  }
+}
+
+// ── Message Wall (only events WITH a message) ────────────────────
+async function loadMsgWall() {
+  const wallEl = document.getElementById('msg-wall');
+  wallEl.innerHTML = '<div class="msg-wall-empty">Loading...</div>';
+  try {
+    const logs = await fetchAllLogs();
+    // Filter: only logs that have a non-empty message
+    const withMsg = logs.filter(log => {
+      const { msgText } = decodeEventData(log.data);
+      return msgText.trim().length > 0;
+    });
+
+    if (!withMsg.length) {
+      wallEl.innerHTML = '<div class="msg-wall-empty">No messages yet.<br>Be the first to say something! 💬</div>';
+      return;
+    }
+
+    wallEl.innerHTML = '';
+    for (const log of withMsg) {
+      const sender = '0x' + log.topics[1].slice(26);
+      const { streak, msgText } = decodeEventData(log.data);
+      const item = document.createElement('div');
+      item.className = 'msg-wall-item';
+      item.innerHTML = `
+        <div class="msg-wall-item-top">
+          <span class="msg-wall-badge ${log._type.toLowerCase()}">${log._type}</span>
+          <span class="msg-wall-addr"><a href="${EXPLORER}/address/${sender}" target="_blank">${shortAddr(sender)}</a></span>
+          <span class="msg-wall-streak">🔥${streak}</span>
+        </div>
+        <div class="msg-wall-text">${escHtml(msgText)}</div>`;
+      wallEl.appendChild(item);
+    }
+  } catch(e) {
+    wallEl.innerHTML = '<div class="msg-wall-empty">Could not load: ' + escHtml(e.message||'error') + '</div>';
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+updateButtons();
+loadFeed();
+loadMsgWall();
+
+// Auto-refresh Messages Onchain every 60 seconds
+setInterval(loadMsgWall, 60000);
+</script>
+</body>
+</html>

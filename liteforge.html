@@ -33,12 +33,13 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
-    body {
+    html, body {
       font-family: var(--font-main);
       background: var(--bg0);
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
+      max-width: 100%;
     }
 
     body::before {
@@ -62,13 +63,12 @@
 
     /* ── Layout ── */
     /* Hero sits outside the grid, full-width */
-    .hero-wrap {
-      position: relative; z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 12px;
-      border: none !important;
-      background: none !important;
+    /* Hero row — full width across all columns */
+    .hero-full {
+      grid-area: hero;
+      text-align: center;
+      width: 100%;
+      padding: 0;
     }
 
     /* Two-column grid starts at stats level */
@@ -77,20 +77,22 @@
       max-width: 1100px;
       margin: 0 auto;
       padding: 0 12px 80px;
+      overflow: hidden;
       display: grid;
-      grid-template-columns: 1fr 280px;
-      grid-template-areas: "main sidebar";
+      grid-template-columns: 280px 1fr 280px;
+      grid-template-areas: "hero hero hero" "leaderboard main sidebar";
       gap: 24px;
       align-items: stretch;
     }
 
-    .main-col    { grid-area: main; }
-    .sidebar-col { grid-area: sidebar; }
+    .main-col        { grid-area: main; }
+    .sidebar-col     { grid-area: sidebar;     height: 100%; }
+    .leaderboard-col { grid-area: leaderboard; height: 100%; }
 
-    @media (max-width: 860px) {
+    @media (max-width: 1000px) {
       .page-layout {
         grid-template-columns: 1fr;
-        grid-template-areas: "main" "sidebar";
+        grid-template-areas: "hero" "main" "leaderboard" "sidebar";
       }
     }
 
@@ -164,8 +166,9 @@
     }
 
     .hero-title {
-      font-size: clamp(28px, 4vw, 46px); font-weight: 800;
+      font-size: clamp(32px, 4.5vw, 52px); font-weight: 800;
       line-height: 1.06; letter-spacing: -0.02em; margin-bottom: 10px;
+      white-space: nowrap;
       background: linear-gradient(135deg, #e8f4f8 0%, var(--cyan) 55%, var(--blue) 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
@@ -185,6 +188,11 @@
       background: var(--card-bg); border: 1px solid var(--cyan-border);
       border-radius: var(--radius); padding: 16px 12px; text-align: center;
       backdrop-filter: blur(8px); transition: border-color .2s;
+      position: relative; overflow: hidden;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .5;
     }
     .stat-card:hover { border-color: var(--cyan-dim); }
     .stat-val {
@@ -204,7 +212,7 @@
     }
     .greet-panel::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity: .55;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .6;
     }
     .greet-panel-title {
       font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em;
@@ -236,18 +244,7 @@
       color: var(--success) !important;
     }
 
-    /* ── Message toggle ── */
-    .msg-toggle {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 12px; color: var(--text-dim); cursor: pointer;
-      background: none; border: none; font-family: var(--font-main);
-      padding: 4px 0; transition: color .2s;
-    }
-    .msg-toggle:hover { color: var(--cyan); }
-    .msg-toggle svg { transition: transform .22s; }
-    .msg-toggle.open svg { transform: rotate(90deg); }
-    .msg-wrap { overflow: hidden; max-height: 0; transition: max-height .3s ease, margin .3s ease; }
-    .msg-wrap.open { max-height: 100px; margin-top: 12px; }
+
     .msg-input {
       width: 100%; background: var(--bg0); border: 1px solid var(--cyan-border);
       border-radius: var(--radius); color: var(--text); font-family: var(--font-main);
@@ -324,7 +321,7 @@
     .sidebar-panel::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
       border-radius: 14px 14px 0 0;
-      background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: .5;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .6;
     }
     .sidebar-panel { position: sticky; top: 20px; overflow: hidden; }
 
@@ -369,11 +366,60 @@
       color: var(--text-muted); padding: 20px 10px;
     }
 
+    /* ── Leaderboard ── */
+    .leaderboard-panel {
+      background: var(--card-bg); border: 1px solid var(--cyan-border);
+      border-radius: 14px; padding: 18px 16px; margin-top: 16px;
+      backdrop-filter: blur(10px); position: relative; overflow: hidden;
+    }
+    .leaderboard-panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .5;
+    }
+    .lb-title {
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .lb-list { display: flex; flex-direction: column; gap: 6px; }
+    .lb-item {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(8,14,24,0.5); border: 1px solid rgba(91,200,212,0.1);
+      border-radius: 8px; padding: 8px 12px;
+    }
+    .lb-rank {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      width: 22px; text-align: center; flex-shrink: 0;
+    }
+    .lb-rank.gold   { color: #f0c060; }
+    .lb-rank.silver { color: #b0bec5; }
+    .lb-rank.bronze { color: #cd7f32; }
+    .lb-rank.other  { color: var(--text-muted); }
+    .lb-addr {
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+      flex: 1;
+    }
+    .lb-addr a { color: inherit; text-decoration: none; }
+    .lb-addr a:hover { color: var(--cyan); }
+    .lb-scores {
+      display: flex; align-items: center; gap: 4px;
+      font-family: var(--font-mono); font-size: 11px; margin-left: auto;
+    }
+    .lb-gm    { color: var(--cyan); min-width: 28px; text-align: right; }
+    .lb-gn    { color: var(--blue); min-width: 28px; text-align: right; }
+    .lb-total { color: var(--gold); font-weight: 400; min-width: 24px; text-align: right;
+                border-left: 1px solid rgba(240,192,96,0.25); padding-left: 5px; margin-left: 2px; }
+
     /* ── SC Info ── */
     .sc-info {
       margin-top: 20px; background: var(--card-bg); border: 1px solid var(--cyan-border);
       border-radius: var(--radius); padding: 14px 16px;
       display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+      position: relative; overflow: hidden;
+    }
+    .sc-info::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .5;
     }
     .sc-info-label { font-family:var(--font-mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; }
     .sc-info-addr  { font-family:var(--font-mono); font-size:12px; color:var(--cyan); }
@@ -410,23 +456,36 @@
   </div>
 </nav>
 
-<!-- ── Hero (full-width, outside grid) ── -->
-<div class="hero-wrap">
-  <div class="hero">
-    <div class="hero-eyebrow">⚡ LiteForge Hackathon — Built on zkLTC</div>
-    <h1 class="hero-title">GM / GN on Litecoin EVM</h1>
-    <p class="hero-sub">
-      Daily onchain greetings with <strong>streak tracking</strong>,
-      optional messages and zkLTC tips, powered by <strong>LitVM</strong>,
-      Litecoin's first EVM rollup.
-    </p>
-  </div>
-</div>
-
 <!-- ── Page layout ── -->
 <div class="page-layout">
 
-  <!-- ── Main column ── -->
+  <!-- ── Hero — spans all columns ── -->
+  <div class="hero-full">
+    <div class="hero">
+      <div class="hero-eyebrow">⚡ LiteForge Hackathon — Built on zkLTC</div>
+      <h1 class="hero-title">GM / GN on Litecoin EVM</h1>
+      <p class="hero-sub">
+        Daily onchain greetings with <strong>streak tracking</strong>,
+        optional messages and zkLTC tips, powered by <strong>LitVM</strong>,
+        Litecoin's first EVM rollup.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Leaderboard column ── -->
+  <div class="leaderboard-col">
+    <div class="leaderboard-panel" style="margin-top:94px;height:calc(100% - 94px);display:flex;flex-direction:column;">
+      <div class="lb-title">
+        <span>// Streak Board</span>
+        <button class="feed-refresh" onclick="loadLeaderboard()" style="margin:0;">↻</button>
+      </div>
+      <div class="lb-list" id="lb-list" style="flex:1;overflow-y:auto;">
+        <div class="msg-wall-empty">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+    <!-- ── Main column ── -->
   <div class="main-col">
 
     <!-- Stats bar -->
@@ -461,20 +520,28 @@
         </button>
       </div>
 
-      <button class="msg-toggle" id="msg-toggle" onclick="toggleMsg()">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-          <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        Add a message (optional)
-      </button>
-      <div class="msg-wrap" id="msg-wrap">
-        <textarea class="msg-input" id="msg-input" rows="2"
-          placeholder="Say something onchain... (max 280 chars)" maxlength="280"></textarea>
-      </div>
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Message (optional)</div>
+      <textarea class="msg-input" id="msg-input" rows="2"
+        placeholder="Say something onchain... (max 280 chars)" maxlength="280"></textarea>
 
       <div class="fee-hint">
         ⛽ Fee: <span>0.000123 zkLTC</span> per action &nbsp;·&nbsp; Enforced onchain
       </div>
+
+      <!-- TX preview — shown before signing -->
+      <div id="tx-preview" style="display:none;margin-top:12px;padding:10px 14px;
+           background:rgba(8,14,24,0.7);border:1px solid rgba(91,200,212,0.2);
+           border-radius:var(--radius);font-family:var(--font-mono);font-size:11px;
+           color:var(--text-dim);line-height:1.7;">
+        <div style="color:var(--cyan);margin-bottom:4px;letter-spacing:.1em;">TX DETAILS</div>
+        <div>App &nbsp;&nbsp;&nbsp;: <span style="color:var(--text);">LiteForge Greets (chaingreets.xyz)</span></div>
+        <div>Contract : <span style="color:var(--text);">GreetLiteForge</span></div>
+        <div>Network &nbsp;: <span style="color:var(--text);">LitVM Testnet (Chain 4441)</span></div>
+        <div id="preview-fn">Function : <span style="color:var(--cyan);">—</span></div>
+        <div id="preview-msg" style="display:none;">Message &nbsp;: <span id="preview-msg-val" style="color:var(--text-dim);font-style:italic;"></span></div>
+        <div>Value &nbsp;&nbsp;&nbsp;: <span style="color:var(--text);">0.000123 zkLTC</span></div>
+      </div>
+
       <div id="log-area"></div>
     </div>
 
@@ -523,7 +590,10 @@
         <div class="msg-wall-empty">Loading messages...</div>
       </div>
     </div>
+
   </div>
+
+
 
 </div><!-- /page-layout -->
 
@@ -563,7 +633,6 @@ let provider = null;
 let account  = null;
 let canGmNow = false;
 let canGnNow = false;
-let msgOpen  = false;
 
 // ── Utilities ───────────────────────────────────────────────────
 function shortAddr(a) { return a.slice(0,6) + '...' + a.slice(-4); }
@@ -658,11 +727,7 @@ function setLog(type, msg) {
   el.textContent = msg; el.className = 'show '+type;
 }
 
-function toggleMsg() {
-  msgOpen = !msgOpen;
-  document.getElementById('msg-wrap').classList.toggle('open', msgOpen);
-  document.getElementById('msg-toggle').classList.toggle('open', msgOpen);
-}
+
 
 // ── Wallet connect / disconnect ──────────────────────────────────
 async function handleConnect() {
@@ -693,6 +758,7 @@ async function handleConnect() {
     await loadStats(account);
     await checkCanAct(account);
     loadFeed(); // auto-refresh My Greetings on connect
+    loadLeaderboard();
 
     provider.on('accountsChanged', accs => {
       if (!accs[0]) { handleDisconnect(); return; }
@@ -738,6 +804,22 @@ async function sendGreet(type) {
   const label = type === 'gm' ? '☀️ GM' : '🌙 GN';
 
   document.getElementById(btnId).disabled = true;
+
+  // Show TX preview before wallet prompt
+  const preview = document.getElementById('tx-preview');
+  const previewFn = document.getElementById('preview-fn');
+  const previewMsgEl = document.getElementById('preview-msg');
+  const previewMsgVal = document.getElementById('preview-msg-val');
+  const fnName = type === 'gm' ? 'gm(string)' : 'gn(string)';
+  previewFn.innerHTML = 'Function : <span style="color:var(--cyan);">' + fnName + '</span>';
+  if (msg) {
+    previewMsgEl.style.display = 'block';
+    previewMsgVal.textContent = '"' + msg.slice(0, 60) + (msg.length > 60 ? '...' : '') + '"';
+  } else {
+    previewMsgEl.style.display = 'none';
+  }
+  preview.style.display = 'block';
+
   setLog('pending', label + ' — signing transaction...');
 
   try {
@@ -773,12 +855,14 @@ async function sendGreet(type) {
     const short = txHash.slice(0,10)+'...'+txHash.slice(-6);
     setLog('success', label + ' confirmed! ' + short + ' → ' + EXPLORER + '/tx/' + txHash);
 
+    document.getElementById('tx-preview').style.display = 'none';
     if (type === 'gm') canGmNow = false; else canGnNow = false;
     updateButtons();
     await loadStats(account);
-    setTimeout(() => { loadFeed(); loadMsgWall(); }, 2500);
+    setTimeout(() => { loadFeed(); loadMsgWall(); loadLeaderboard(); }, 2500);
 
   } catch(e) {
+    document.getElementById('tx-preview').style.display = 'none';
     if (e.code === 4001) setLog('error', 'Transaction cancelled.');
     else setLog('error', (e.message || 'Unknown error').slice(0,140));
     updateButtons();
@@ -907,13 +991,82 @@ async function loadMsgWall() {
   }
 }
 
+// ── Leaderboard ─────────────────────────────────────────────────
+// Builds streak leaderboard from ALL GM/GN events since deploy.
+// For each wallet, takes the LATEST streak value per event type
+// (streak is stored in each event, so last event = current streak).
+async function loadLeaderboard() {
+  const lbEl = document.getElementById('lb-list');
+  lbEl.innerHTML = '<div class="msg-wall-empty">Loading...</div>';
+
+  try {
+    const logs = await fetchAllLogs(); // reuse cached fetch, newest first
+
+    // Aggregate: for each wallet keep latest gmStreak and gnStreak
+    // logs are sorted newest first — so first occurrence per wallet = current streak
+    const wallets = {};
+    for (const log of logs) {
+      const addr   = ('0x' + log.topics[1].slice(26)).toLowerCase();
+      const { streak } = decodeEventData(log.data);
+      const streakNum  = parseInt(streak) || 0;
+
+      if (!wallets[addr]) wallets[addr] = { gmStreak: 0, gnStreak: 0, addr };
+
+      if (log._type === 'GM' && wallets[addr].gmStreak === 0) {
+        wallets[addr].gmStreak = streakNum;
+      }
+      if (log._type === 'GN' && wallets[addr].gnStreak === 0) {
+        wallets[addr].gnStreak = streakNum;
+      }
+    }
+
+    // Sort by combined streak desc
+    const ranked = Object.values(wallets)
+      .map(w => ({ ...w, total: w.gmStreak + w.gnStreak }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    if (!ranked.length) {
+      lbEl.innerHTML = '<div class="msg-wall-empty">No data yet.</div>';
+      return;
+    }
+
+    const rankClass = i => ['gold','silver','bronze'][i] || 'other';
+    const rankIcon  = i => ['🥇','🥈','🥉'][i] || (i + 1);
+
+    lbEl.innerHTML = '';
+    ranked.forEach((w, i) => {
+      const isMe = account && w.addr === account.toLowerCase();
+      const item = document.createElement('div');
+      item.className = 'lb-item';
+      if (isMe) item.style.borderColor = 'rgba(91,200,212,0.35)';
+      item.innerHTML = `
+        <div class="lb-rank ${rankClass(i)}">${rankIcon(i)}</div>
+        <div class="lb-addr">
+          <a href="${EXPLORER}/address/${w.addr}" target="_blank">${shortAddr(w.addr)}</a>
+          ${isMe ? '<span style="color:var(--cyan);font-size:10px;margin-left:4px;">(you)</span>' : ''}
+        </div>
+        <div class="lb-scores">
+          <span class="lb-gm" title="GM streak">☀️${w.gmStreak}</span>
+          <span class="lb-gn" title="GN streak">🌙${w.gnStreak}</span>
+          <span class="lb-total" title="Combined">${w.total}</span>
+        </div>`;
+      lbEl.appendChild(item);
+    });
+
+  } catch(e) {
+    lbEl.innerHTML = '<div class="msg-wall-empty">Error: ' + escHtml(e.message||'unknown') + '</div>';
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────────────
 updateButtons();
 loadFeed();
 loadMsgWall();
+loadLeaderboard();
 
 // Auto-refresh Messages Onchain every 60 seconds
-setInterval(loadMsgWall, 60000);
+setInterval(() => { loadMsgWall(); loadLeaderboard(); }, 60000);
 </script>
 </body>
 </html>
